@@ -1,0 +1,11 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# draw.io / diagrams.net backups
+*.bkp
+*.drawio.bkp
+*.drawio.dtmp
+
+# Office temp files
+~$*
