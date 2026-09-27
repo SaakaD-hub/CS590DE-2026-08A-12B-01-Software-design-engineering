@@ -1,0 +1,240 @@
+---
+title: "Lab 3 – Part 1 – Webshop layered architecture (DDD) | David Kasozi Saaka | CS590DE Software Design Engineering | 2026-09-27"
+---
+classDiagram
+direction LR
+
+namespace Service {
+    class ProductCatalogService {
+        +addProduct(Product)
+        +updateProduct(Product)
+        +removeProduct(productNumber)
+        +addReview(productNumber, Review)
+    }
+    class SupplierService {
+        +addSupplier(Supplier)
+        +updateSupplier(Supplier)
+        +removeSupplier(supplierNumber)
+    }
+    class CustomerService {
+        +createAccount(Customer)
+        +getLoggedOnCustomer() Customer
+    }
+    class ShoppingService {
+        +addToCart(productNumber, quantity)
+        +removeFromCart(productNumber)
+        +changeQuantity(productNumber, quantity)
+        +checkoutCart() Order
+    }
+    class OrderService {
+        +createOrder(ShoppingCart) Order
+        +shipTo(Address)
+        +billTo(Address)
+        +chooseShipping(ShippingOption)
+        +payWith(CreditCard)
+        +confirm()
+    }
+    class OrderPlacedEventHandler {
+        +handle(OrderPlacedEvent)
+    }
+}
+
+namespace Domain {
+    class Product {
+        <<entity>>
+        -productNumber: long
+        -name: String
+        -description: String
+        -price: Money
+        +changePrice(Money)
+        +addReview(Review)
+        +isAvailable(quantity) boolean
+        +reserveStock(quantity)
+    }
+    class Supplier {
+        <<entity>>
+        -supplierNumber: long
+        -name: String
+    }
+    class Customer {
+        <<entity>>
+        -customerNumber: long
+        -firstName: String
+        -lastName: String
+        +addCreditCard(CreditCard)
+        +ownsCreditCard(CreditCard) boolean
+    }
+    class ShoppingCart {
+        <<entity>>
+        -shoppingcartNumber: long
+        +addToCart(Product, quantity)
+        +removeFromCart(Product)
+        +changeQuantity(Product, quantity)
+        +checkout() Order
+    }
+    class Order {
+        <<entity>>
+        -orderNumber: long
+        -date: LocalDateTime
+        -status: String
+        +shipTo(Address)
+        +billTo(Address)
+        +chooseShipping(ShippingOption, Money)
+        +payWith(CreditCard)
+        +computeTotal() Money
+        +confirm()
+    }
+
+    class Money {
+        <<value object>>
+        -amount: BigDecimal
+        -currency: String
+        +add(Money) Money
+        +multiply(int) Money
+        +equals(Money) boolean
+    }
+    class Address {
+        <<value object>>
+        -street: String
+        -city: String
+        -zip: String
+        -country: String
+        +validate()
+        +equals(Address) boolean
+    }
+    class Contact {
+        <<value object>>
+        -email: String
+        -phone: String
+        +validate()
+        +equals(Contact) boolean
+    }
+    class Account {
+        <<value object>>
+        -username: String
+        -password: String
+        +check(password) boolean
+    }
+    class CreditCard {
+        <<value object>>
+        -number: String
+        -validationDate: YearMonth
+        +validate()
+        +isExpired() boolean
+    }
+    class ShippingOption {
+        <<value object>>
+        -name: String
+        -price: Money
+        -shipper: String
+        +equals(ShippingOption) boolean
+    }
+    class Stock {
+        <<value object>>
+        -nrInStock: int
+        -locationCode: String
+        +isAvailable(quantity) boolean
+        +decrease(quantity) Stock
+    }
+    class Review {
+        <<value object>>
+        -customerNumber: long
+        -title: String
+        -description: String
+        -score: int
+        +validate()
+    }
+    class CartLine {
+        <<value object>>
+        -quantity: int
+        +computeSubtotal() Money
+    }
+    class OrderLine {
+        <<value object>>
+        -productName: String
+        -unitPrice: Money
+        -quantity: int
+        +computeSubtotal() Money
+    }
+    class ShippingCostCalculator {
+        <<domain service>>
+        +calculate(Order, Address, ShippingOption) Money
+    }
+    class OrderPlacedEvent {
+        <<domain event>>
+        -orderNumber: long
+        -customerEmail: String
+        -total: Money
+        -occurredAt: LocalDateTime
+    }
+}
+
+namespace DataAccess {
+    class ProductDAO {
+        +load(productNumber) Product
+        +save(Product)
+        +delete(productNumber)
+    }
+    class SupplierDAO {
+        +load(supplierNumber) Supplier
+        +save(Supplier)
+        +delete(supplierNumber)
+    }
+    class CustomerDAO {
+        +load(customerNumber) Customer
+        +save(Customer)
+    }
+    class ShoppingCartDAO {
+        +findByCustomer(customerNumber) ShoppingCart
+        +save(ShoppingCart)
+    }
+    class OrderDAO {
+        +load(orderNumber) Order
+        +save(Order)
+    }
+}
+
+namespace Integration {
+    class EventPublisher {
+        +publish(OrderPlacedEvent)
+    }
+    class EmailSender {
+        +send(to, subject, body)
+    }
+}
+
+ProductCatalogService ..> ProductDAO
+SupplierService ..> SupplierDAO
+CustomerService ..> CustomerDAO
+ShoppingService ..> ShoppingCartDAO
+OrderService ..> OrderDAO
+OrderService ..> ShippingCostCalculator
+OrderService ..> EventPublisher
+EventPublisher ..> OrderPlacedEventHandler
+OrderPlacedEventHandler ..> EmailSender
+
+Customer "1" *-- "1" Contact
+Customer "1" *-- "1" Address
+Customer "1" *-- "1" Account
+Customer "1" *-- "*" CreditCard
+Customer "1" o-- "*" Order
+
+Product "1" *-- "1" Money : price
+Product "1" *-- "1" Stock
+Product "1" *-- "*" Review
+Product "*" --> "1" Supplier
+Supplier "1" *-- "1" Contact
+Supplier "1" *-- "1" Address
+
+ShoppingCart "1" --> "1" Customer
+ShoppingCart "1" *-- "*" CartLine
+CartLine "*" --> "1" Product
+
+Order "1" --> "1" Customer
+Order "1" *-- "*" OrderLine
+Order "1" *-- "2" Address : shipping / billing
+Order "1" *-- "1" CreditCard
+Order "1" *-- "1" ShippingOption
+OrderLine "1" *-- "1" Money : unitPrice
+ShippingCostCalculator ..> Order
+Order ..> OrderPlacedEvent : raises
