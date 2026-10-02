@@ -9,3 +9,22 @@ Thumbs.db
 
 # Office temp files
 ~$*
+
+# ---- Java / Maven ----
+target/
+*.class
+
+# ---- IntelliJ ----
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# ---- archives: source lives in the repo, not binaries ----
+*.rar
+*.zip
+
+# ---- HSQLDB local files ----
+db/
+*.lck

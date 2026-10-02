@@ -1,0 +1,34 @@
+CS590DE Lab 6 - how to run
+
+Start these five, each in its own run configuration, and leave them running:
+
+  1. EnterpriseServiceBus          ESBApplication                    port 8080
+  2. WarehouseService              WarehouseApplication              port 8081
+  3. NormalShippingService         NormalShippingApplication         port 8082
+  4. NextDayShippingService        NextDayShippingApplication        port 8083
+  5. InternationalShippingService  InternationalShippingApplication  port 8084
+
+Then run:
+
+  6. OrderService                  OrderApplication
+
+It sends four orders and exits.
+
+WHAT YOU SHOULD SEE
+-------------------
+All four orders appear in the WarehouseService console, because every order is
+checked by the warehouse before it is shipped.
+
+Then they split:
+
+  order 334  domestic       120.00  ->  NormalShippingService         (8082)
+  order 355  domestic       185.00  ->  NextDayShippingService        (8083)
+  order 401  international   90.00  ->  InternationalShippingService  (8084)
+  order 402  international  300.00  ->  InternationalShippingService  (8084)
+
+Order 402 is the one worth checking. It is 300 dollars, which is over the
+175 threshold, but it is international, so router 1 takes it out before
+router 2 ever sees it. If 402 turns up in next day shipping, the two routers
+are chained in the wrong order.
+
+The ESB console prints the path each order takes through both routers.
